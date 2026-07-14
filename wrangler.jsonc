@@ -26,10 +26,10 @@
   ],
   // Workers AI: Whisper transcribe los bloques de audio.
   "ai": { "binding": "AI" },
-  // OWNER: el usuario dueño (secret PASSWORD). WRITERS: otros usuarios que
-  // pueden escribir (coma-separados; cada uno necesita su secret
-  // PASSWORD_<NOMBRE>). El resto de usuarios con secret son lectores.
-  "vars": { "OWNER": "valentin", "WRITERS": "manu" },
+  // OWNER: el usuario dueño y ÚNICO writer (secret PASSWORD). Si algún día
+  // hiciera falta otro escritor, se añade aquí (coma-separados) y se le crea
+  // su secret PASSWORD_<NOMBRE>; los demás usuarios con secret son lectores.
+  "vars": { "OWNER": "valentin", "WRITERS": "" },
   "observability": { "enabled": true },
   // Rate limiting nativo (mismo patrón que notas8/twoitter). namespace_id es
   // un id lógico por cuenta: aquí 3001-3002 (cuenta de valentin, sin vecinos).
