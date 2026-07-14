@@ -197,14 +197,13 @@ textarea.grow { resize: none; overflow: hidden; }
   overflow-y: auto;
 }
 
-/* el composer de audio vive DENTRO del hero (resta su alto a las nubes),
-   pero mantiene la columna del resto de la página */
+/* el composer de audio vive DENTRO del hero, ARRIBA (como en texto) y le
+   resta su alto a las nubes; mantiene la columna del resto de la página */
 .audio-hero .composer {
   flex: 0 0 auto;
   width: min(66vw, 105ch);
   margin-bottom: 0;
-  padding: 0 0 22px 40px;
-  border-bottom: none;
+  padding: 24px 0 22px 40px;
 }
 
 .page.audio-page { padding-top: 56px; }
@@ -274,7 +273,10 @@ textarea.grow { resize: none; overflow: hidden; }
 
 .publish-btn { color: var(--accent); }
 
-/* el borrador de audio: player + estado + × para descartarlo */
+/* los bloques del borrador (texto o audio): player/textarea + estado + × */
+.draft-blocks { display: grid; gap: 14px; }
+.draft-blocks:empty { display: none; }
+
 .draft-block {
   display: grid;
   gap: 6px;
@@ -422,9 +424,31 @@ textarea.grow { resize: none; overflow: hidden; }
 }
 .entry-body a.link:hover { border-bottom-color: currentColor; color: var(--accent); }
 
-.entry .audio-player { margin-bottom: 12px; }
+/* bloques de una nota en el feed (como notas8) */
+.block { margin-bottom: 1.2em; }
+.block:last-child { margin-bottom: 0; }
+.block .audio-player { margin-top: 6px; }
 
-/* meta-línea del pie de la entrada: corregir · borrar — aparece al pasar */
+/* meta-línea de un bloque: audio plegado · transcribir · corregir —
+   casi invisible, aparece al pasar por encima del bloque */
+.block-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  align-items: baseline;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+  opacity: 0.35;
+  transition: opacity 0.15s;
+}
+.block:hover .block-meta { opacity: 1; }
+.block-meta button { font-size: 11px; color: var(--muted); }
+.block-meta button:hover:not(:disabled) { color: var(--accent); }
+
+/* meta-línea del pie de la nota: editar título · borrar — aparece al pasar */
 .entry-meta {
   display: flex;
   flex-wrap: wrap;

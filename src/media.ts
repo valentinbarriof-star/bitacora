@@ -48,3 +48,18 @@ export function classifyAudio(ct: string): { ext: string } | null {
     : sub;
   return { ext };
 }
+
+// Uint8Array → base64. Whisper de Workers AI espera el audio como STRING
+// base64; chunkeado a 32 KB para no reventar el stack (ver notas8/media.ts).
+export function uint8ToBase64(u8: Uint8Array): string {
+  const CHUNK = 0x8000;
+  let binary = "";
+  for (let i = 0; i < u8.length; i += CHUNK) {
+    const end = Math.min(i + CHUNK, u8.length);
+    binary += String.fromCharCode.apply(
+      null,
+      u8.subarray(i, end) as unknown as number[],
+    );
+  }
+  return btoa(binary);
+}

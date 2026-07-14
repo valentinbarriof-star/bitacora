@@ -1,17 +1,30 @@
-// Consultas D1. Db propia (bitacora-db), tablas entries + labels.
+// Consultas D1. Db propia (bitacora-db): notes + blocks + labels
+// (el modelo de notas8, sin comentarios ni versiones ni anidación).
 
-export interface EntryRow {
+export interface NoteRow {
   id: number;
   kind: "texto" | "audio";
   title: string | null;
-  body: string | null;
-  r2_key: string | null;
-  content_type: string | null;
   created_at: string;
   updated_at: string | null;
 }
 
-export interface Entry extends EntryRow {
+export interface BlockRow {
+  id: number;
+  note_id: number;
+  position: number;
+  kind: "text" | "audio";
+  r2_key: string | null;
+  content_type: string | null;
+  text: string | null;
+  transcript: string | null;
+  transcript_original: string | null;
+  transcribed_at: string | null;
+  created_at: string;
+}
+
+export interface Note extends NoteRow {
+  blocks: BlockRow[];
   tags: string[];
   mentions: string[];
 }
@@ -23,49 +36,63 @@ export interface LabelCount {
   count: number;
 }
 
-const ENTRY_COLS =
-  "id, kind, title, body, r2_key, content_type, created_at, updated_at";
-
-export async function createEntry(
+export async function createNote(
   db: D1Database,
-  e: {
-    kind: "texto" | "audio";
-    title: string | null;
-    body: string | null;
-    r2_key: string | null;
-    content_type: string | null;
-  },
+  kind: "texto" | "audio",
+  title: string | null,
 ): Promise<number> {
   const r = await db
-    .prepare(
-      "INSERT INTO entries (kind, title, body, r2_key, content_type) VALUES (?, ?, ?, ?, ?) RETURNING id",
-    )
-    .bind(e.kind, e.title, e.body, e.r2_key, e.content_type)
+    .prepare("INSERT INTO notes (kind, title) VALUES (?, ?) RETURNING id")
+    .bind(kind, title)
     .first<{ id: number }>();
   return r!.id;
 }
 
-export async function getEntry(db: D1Database, id: number): Promise<Entry | null> {
-  const e = await db
-    .prepare(`SELECT ${ENTRY_COLS} FROM entries WHERE id = ? AND deleted_at IS NULL`)
-    .bind(id)
-    .first<EntryRow>();
-  if (!e) return null;
-  const labels = await db
-    .prepare("SELECT type, value FROM labels WHERE entry_id = ?")
-    .bind(id)
-    .all<{ type: LabelType; value: string }>();
-  return {
-    ...e,
-    tags: labels.results.filter((l) => l.type === "tag").map((l) => l.value),
-    mentions: labels.results.filter((l) => l.type === "mention").map((l) => l.value),
-  };
+export interface NewBlock {
+  kind: "text" | "audio";
+  r2_key?: string | null;
+  content_type?: string | null;
+  text?: string | null;
+  // el composer transcribe ANTES de publicar (POST /api/transcribe), así que
+  // un bloque de audio puede llegar ya con su transcript (posiblemente
+  // corregido a mano) y con el whisper crudo en transcript_original.
+  transcript?: string | null;
+  transcript_original?: string | null;
 }
 
-// Feed de una sección. `q` busca en título y cuerpo (LIKE); `tags` y
-// `mentions` filtran por etiqueta — TODAS deben estar (AND): la pantalla
-// intermedia va acotando el carrete con cada clic.
-export async function listEntries(
+export async function addBlock(
+  db: D1Database,
+  noteId: number,
+  position: number,
+  b: NewBlock,
+): Promise<number> {
+  const transcript = b.transcript ?? null;
+  const original = b.transcript_original ?? null;
+  const r = await db
+    .prepare(
+      `INSERT INTO blocks (note_id, position, kind, r2_key, content_type, text, transcript, transcript_original, transcribed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    )
+    .bind(
+      noteId,
+      position,
+      b.kind,
+      b.r2_key ?? null,
+      b.content_type ?? null,
+      b.text ?? null,
+      transcript,
+      // sólo tiene sentido si difiere del transcript final
+      original && original !== transcript ? original : null,
+      transcript ? new Date().toISOString() : null,
+    )
+    .first<{ id: number }>();
+  return r!.id;
+}
+
+// Feed de una sección. `q` busca en título, texto y transcripciones (LIKE);
+// `tags` y `mentions` filtran por etiqueta — TODAS deben estar (AND): la
+// pantalla intermedia va acotando el carrete con cada clic.
+export async function listNotes(
   db: D1Database,
   opts: {
     kind?: "texto" | "audio";
@@ -75,20 +102,25 @@ export async function listEntries(
     limit: number;
     offset: number;
   },
-): Promise<Entry[]> {
-  const where: string[] = ["e.deleted_at IS NULL"];
+): Promise<Note[]> {
+  const where: string[] = ["n.deleted_at IS NULL"];
   const binds: unknown[] = [];
   if (opts.kind) {
-    where.push("e.kind = ?");
+    where.push("n.kind = ?");
     binds.push(opts.kind);
   }
   if (opts.q) {
-    where.push("(e.title LIKE ? OR e.body LIKE ?)");
     const like = `%${opts.q}%`;
-    binds.push(like, like);
+    where.push(
+      `(n.title LIKE ? OR EXISTS (
+         SELECT 1 FROM blocks b WHERE b.note_id = n.id
+         AND (b.text LIKE ? OR b.transcript LIKE ?)
+       ))`,
+    );
+    binds.push(like, like, like);
   }
-  // AND de etiquetas: la entrada debe tener TODAS las seleccionadas. El
-  // COUNT contra la PK (entry_id, type, value) no puede duplicar.
+  // AND de etiquetas: la nota debe tener TODAS las seleccionadas. El COUNT
+  // contra la PK (note_id, type, value) no puede duplicar.
   const tags = opts.tags ?? [];
   const mentions = opts.mentions ?? [];
   const total = tags.length + mentions.length;
@@ -101,15 +133,15 @@ export async function listEntries(
       parts.push(`(l.type = 'mention' AND l.value IN (${mentions.map(() => "?").join(",")}))`);
     }
     where.push(
-      `(SELECT COUNT(*) FROM labels l WHERE l.entry_id = e.id AND (${parts.join(" OR ")})) = ?`,
+      `(SELECT COUNT(*) FROM labels l WHERE l.note_id = n.id AND (${parts.join(" OR ")})) = ?`,
     );
     binds.push(...tags, ...mentions, total);
   }
 
   const ids = await db
     .prepare(
-      `SELECT e.id FROM entries e WHERE ${where.join(" AND ")}
-       ORDER BY e.id DESC LIMIT ? OFFSET ?`,
+      `SELECT n.id FROM notes n WHERE ${where.join(" AND ")}
+       ORDER BY n.id DESC LIMIT ? OFFSET ?`,
     )
     .bind(...binds, opts.limit, opts.offset)
     .all<{ id: number }>();
@@ -117,47 +149,129 @@ export async function listEntries(
 
   const list = ids.results.map((x) => x.id);
   const marks = list.map(() => "?").join(",");
-  const [entries, labels] = await Promise.all([
+  const [notes, blocks, labels] = await Promise.all([
     db
-      .prepare(`SELECT ${ENTRY_COLS} FROM entries WHERE id IN (${marks})`)
+      .prepare(
+        `SELECT id, kind, title, created_at, updated_at FROM notes WHERE id IN (${marks})`,
+      )
       .bind(...list)
-      .all<EntryRow>(),
+      .all<NoteRow>(),
     db
-      .prepare(`SELECT entry_id, type, value FROM labels WHERE entry_id IN (${marks})`)
+      .prepare(`SELECT * FROM blocks WHERE note_id IN (${marks}) ORDER BY note_id, position, id`)
       .bind(...list)
-      .all<{ entry_id: number; type: LabelType; value: string }>(),
+      .all<BlockRow>(),
+    db
+      .prepare(`SELECT note_id, type, value FROM labels WHERE note_id IN (${marks})`)
+      .bind(...list)
+      .all<{ note_id: number; type: LabelType; value: string }>(),
   ]);
 
-  const byId = new Map<number, Entry>();
-  for (const e of entries.results) byId.set(e.id, { ...e, tags: [], mentions: [] });
+  const byId = new Map<number, Note>();
+  for (const n of notes.results) byId.set(n.id, { ...n, blocks: [], tags: [], mentions: [] });
+  for (const b of blocks.results) byId.get(b.note_id)?.blocks.push(b);
   for (const l of labels.results) {
-    const e = byId.get(l.entry_id);
-    if (!e) continue;
-    if (l.type === "tag") e.tags.push(l.value);
-    else e.mentions.push(l.value);
+    const n = byId.get(l.note_id);
+    if (!n) continue;
+    if (l.type === "tag") n.tags.push(l.value);
+    else n.mentions.push(l.value);
   }
   // conservar el orden DESC de ids
   return list.map((id) => byId.get(id)!).filter(Boolean);
 }
 
-export async function setEntryText(
+export async function getNote(db: D1Database, id: number): Promise<Note | null> {
+  const n = await db
+    .prepare(
+      "SELECT id, kind, title, created_at, updated_at FROM notes WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(id)
+    .first<NoteRow>();
+  if (!n) return null;
+  const [blocks, labels] = await Promise.all([
+    db
+      .prepare("SELECT * FROM blocks WHERE note_id = ? ORDER BY position, id")
+      .bind(id)
+      .all<BlockRow>(),
+    db
+      .prepare("SELECT type, value FROM labels WHERE note_id = ?")
+      .bind(id)
+      .all<{ type: LabelType; value: string }>(),
+  ]);
+  return {
+    ...n,
+    blocks: blocks.results,
+    tags: labels.results.filter((l) => l.type === "tag").map((l) => l.value),
+    mentions: labels.results.filter((l) => l.type === "mention").map((l) => l.value),
+  };
+}
+
+export async function getBlock(db: D1Database, id: number): Promise<BlockRow | null> {
+  return db.prepare("SELECT * FROM blocks WHERE id = ?").bind(id).first<BlockRow>();
+}
+
+export async function setBlockTranscript(
   db: D1Database,
   id: number,
-  title: string | null,
-  body: string | null,
-): Promise<void> {
+  transcript: string,
+): Promise<string> {
+  const now = new Date().toISOString();
+  await db
+    .prepare("UPDATE blocks SET transcript = ?, transcribed_at = ? WHERE id = ?")
+    .bind(transcript, now, id)
+    .run();
+  return now;
+}
+
+// Corrección manual: la PRIMERA corrección congela el whisper original en
+// transcript_original (COALESCE evita machacarlo en correcciones siguientes).
+export async function setBlockTranscriptEdit(
+  db: D1Database,
+  id: number,
+  transcript: string,
+): Promise<BlockRow | null> {
   await db
     .prepare(
-      "UPDATE entries SET title = ?, body = ?, updated_at = datetime('now') WHERE id = ?",
+      `UPDATE blocks
+       SET transcript_original = COALESCE(transcript_original, transcript),
+           transcript = ?
+       WHERE id = ?`,
     )
-    .bind(title, body, id)
+    .bind(transcript, id)
+    .run();
+  return getBlock(db, id);
+}
+
+export async function setBlockText(
+  db: D1Database,
+  id: number,
+  text: string,
+): Promise<BlockRow | null> {
+  await db.prepare("UPDATE blocks SET text = ? WHERE id = ?").bind(text, id).run();
+  return getBlock(db, id);
+}
+
+export async function touchNote(db: D1Database, id: number): Promise<void> {
+  await db
+    .prepare("UPDATE notes SET updated_at = datetime('now') WHERE id = ?")
+    .bind(id)
     .run();
 }
 
-export async function softDeleteEntry(db: D1Database, id: number): Promise<boolean> {
+export async function setNoteTitle(
+  db: D1Database,
+  id: number,
+  title: string | null,
+): Promise<void> {
+  await db
+    .prepare("UPDATE notes SET title = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(title, id)
+    .run();
+}
+
+export async function softDeleteNote(db: D1Database, id: number): Promise<boolean> {
   const r = await db
     .prepare(
-      "UPDATE entries SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
+      "UPDATE notes SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
     )
     .bind(id)
     .run();
@@ -177,23 +291,27 @@ export function extractLabels(text: string): { tags: string[]; mentions: string[
   return { tags: [...tags], mentions: [...mentions] };
 }
 
-// Re-sincroniza las etiquetas de una entrada a partir de su texto completo
-// (título + cuerpo). Borra y re-inserta: simple y correcto.
-export async function syncEntryLabels(db: D1Database, entryId: number): Promise<void> {
-  const e = await getEntry(db, entryId);
-  if (!e) return;
-  const { tags, mentions } = extractLabels(`${e.title ?? ""}\n${e.body ?? ""}`);
+// Re-sincroniza las etiquetas de una nota a partir de su texto completo
+// (título + bloques). Borra y re-inserta: simple y correcto.
+export async function syncNoteLabels(db: D1Database, noteId: number): Promise<void> {
+  const note = await getNote(db, noteId);
+  if (!note) return;
+  const full = [
+    note.title ?? "",
+    ...note.blocks.map((b) => b.text ?? b.transcript ?? ""),
+  ].join("\n");
+  const { tags, mentions } = extractLabels(full);
   const stmts = [
-    db.prepare("DELETE FROM labels WHERE entry_id = ?").bind(entryId),
+    db.prepare("DELETE FROM labels WHERE note_id = ?").bind(noteId),
     ...tags.map((v) =>
       db
-        .prepare("INSERT OR IGNORE INTO labels (entry_id, type, value) VALUES (?, 'tag', ?)")
-        .bind(entryId, v),
+        .prepare("INSERT OR IGNORE INTO labels (note_id, type, value) VALUES (?, 'tag', ?)")
+        .bind(noteId, v),
     ),
     ...mentions.map((v) =>
       db
-        .prepare("INSERT OR IGNORE INTO labels (entry_id, type, value) VALUES (?, 'mention', ?)")
-        .bind(entryId, v),
+        .prepare("INSERT OR IGNORE INTO labels (note_id, type, value) VALUES (?, 'mention', ?)")
+        .bind(noteId, v),
     ),
   ];
   await db.batch(stmts);
@@ -208,7 +326,7 @@ export async function listLabels(
   const r = await db
     .prepare(
       `SELECT l.type, l.value, COUNT(*) AS count FROM labels l
-       JOIN entries e ON e.id = l.entry_id AND e.deleted_at IS NULL AND e.kind = ?
+       JOIN notes n ON n.id = l.note_id AND n.deleted_at IS NULL AND n.kind = ?
        GROUP BY l.type, l.value ORDER BY count DESC, l.value`,
     )
     .bind(kind)

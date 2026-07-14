@@ -24,10 +24,12 @@
 
   <!-- ======================= sección TEXTO (azul) ======================= -->
   <main class="page view" data-view="texto">
+    <!-- composer: bloques de texto agrupados bajo un título, como notas8 -->
     <section class="composer writer-only">
       <input type="text" id="texto-title" placeholder="título (opcional, los #tags cuentan)" />
-      <textarea id="texto-body" class="grow" placeholder="escribe… (#tags donde quieras)"></textarea>
+      <div id="texto-draft" class="draft-blocks"></div>
       <div class="composer-bar">
+        <button id="texto-add" class="ghost">+ texto</button>
         <span class="spacer"></span>
         <button id="texto-publish" class="publish-btn" disabled>publicar</button>
       </div>
@@ -41,11 +43,25 @@
 
   <!-- ======================= sección AUDIO (rojo) ======================= -->
   <div class="view" data-view="audio" hidden>
-    <!-- pantalla intermedia: topbar + nubes + composer = 100dvh. Las nubes
-         (@'s a la izquierda, #'s a la derecha; en móvil arriba/abajo) toman
+    <!-- pantalla intermedia: topbar + composer + nubes = 100dvh. El composer
+         va ARRIBA (como en texto): grabas o subes audios, cada uno se
+         transcribe con whisper y el texto queda editable antes de publicar.
+         Las nubes (@'s izquierda, #'s derecha; en móvil arriba/abajo) toman
          lo que el composer les deja, y nacen vacías: todo irá apareciendo
          poco a poco. Cada clic acota el carrete que espera más abajo. -->
     <div class="audio-hero">
+      <section class="composer writer-only">
+        <input type="text" id="audio-title" placeholder="título (opcional, los #tags cuentan)" />
+        <div id="audio-draft" class="draft-blocks"></div>
+        <div class="composer-bar">
+          <button id="record" class="record-btn">● grabar</button>
+          <button id="add-file" class="ghost">+ archivo</button>
+          <input type="file" id="file-input" accept="audio/*" multiple hidden />
+          <span class="spacer"></span>
+          <button id="audio-publish" class="publish-btn" disabled>publicar</button>
+        </div>
+      </section>
+
       <section class="clouds">
         <div class="cloud" id="cloud-mentions" aria-label="menciones"></div>
         <div class="cloud" id="cloud-tags" aria-label="temas"></div>
@@ -53,18 +69,6 @@
           <button id="clear-filters" class="ghost" hidden>× limpiar filtros</button>
           <span id="clouds-count"></span>
           <span id="down-hint" class="down-hint" aria-hidden="true" hidden>↓</span>
-        </div>
-      </section>
-
-      <section class="composer writer-only">
-        <div id="audio-draft" class="draft-block" hidden></div>
-        <textarea id="audio-body" class="grow" placeholder="texto del audio… (con @nombres y #temas)"></textarea>
-        <div class="composer-bar">
-          <button id="record" class="record-btn">● grabar</button>
-          <button id="add-file" class="ghost">+ archivo</button>
-          <input type="file" id="file-input" accept="audio/*" hidden />
-          <span class="spacer"></span>
-          <button id="audio-publish" class="publish-btn" disabled>publicar</button>
         </div>
       </section>
     </div>

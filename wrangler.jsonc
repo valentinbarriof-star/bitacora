@@ -24,13 +24,15 @@
   "r2_buckets": [
     { "binding": "STORAGE", "bucket_name": "bitacora-audio" }
   ],
+  // Workers AI: Whisper transcribe los bloques de audio.
+  "ai": { "binding": "AI" },
   // OWNER: el usuario dueño (secret PASSWORD). WRITERS: otros usuarios que
   // pueden escribir (coma-separados; cada uno necesita su secret
   // PASSWORD_<NOMBRE>). El resto de usuarios con secret son lectores.
   "vars": { "OWNER": "valentin", "WRITERS": "manu" },
   "observability": { "enabled": true },
   // Rate limiting nativo (mismo patrón que notas8/twoitter). namespace_id es
-  // un id lógico por cuenta: twoitter 1001-1003, notas 2001-2002, aquí 3001.
+  // un id lógico por cuenta: aquí 3001-3002 (cuenta de valentin, sin vecinos).
   "unsafe": {
     "bindings": [
       {
@@ -38,6 +40,12 @@
         "type": "ratelimit",
         "namespace_id": "3001",
         "simple": { "limit": 100, "period": 60 }
+      },
+      {
+        "name": "TRANSCRIBE_LIMITER",
+        "type": "ratelimit",
+        "namespace_id": "3002",
+        "simple": { "limit": 15, "period": 60 }
       }
     ]
   }
