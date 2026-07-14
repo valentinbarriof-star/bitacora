@@ -10,6 +10,9 @@
     "binding": "ASSETS",
     "run_worker_first": true
   },
+  "routes": [
+    { "pattern": "bitacora.valentinbarrio.com", "custom_domain": true }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
