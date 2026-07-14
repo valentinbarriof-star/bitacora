@@ -41,24 +41,21 @@
 
   <!-- ======================= sección AUDIO (rojo) ======================= -->
   <div class="view" data-view="audio" hidden>
-    <!-- pantalla intermedia: lo que queda hasta los 100dvh partido en dos —
-         a la izquierda la nube de @'s, a la derecha la de #'s (en móvil,
-         arriba y abajo). Cada clic acota el carrete que espera más abajo. -->
-    <section class="clouds">
-      <div class="cloud" id="cloud-mentions" aria-label="menciones">
-        <span class="cloud-empty">todavía no hay @'s</span>
-      </div>
-      <div class="cloud" id="cloud-tags" aria-label="temas">
-        <span class="cloud-empty">todavía no hay #'s</span>
-      </div>
-      <div class="clouds-foot">
-        <button id="clear-filters" class="ghost" hidden>× limpiar filtros</button>
-        <span id="clouds-count"></span>
-        <span class="down-hint" aria-hidden="true">↓</span>
-      </div>
-    </section>
+    <!-- pantalla intermedia: topbar + nubes + composer = 100dvh. Las nubes
+         (@'s a la izquierda, #'s a la derecha; en móvil arriba/abajo) toman
+         lo que el composer les deja, y nacen vacías: todo irá apareciendo
+         poco a poco. Cada clic acota el carrete que espera más abajo. -->
+    <div class="audio-hero">
+      <section class="clouds">
+        <div class="cloud" id="cloud-mentions" aria-label="menciones"></div>
+        <div class="cloud" id="cloud-tags" aria-label="temas"></div>
+        <div class="clouds-foot">
+          <button id="clear-filters" class="ghost" hidden>× limpiar filtros</button>
+          <span id="clouds-count"></span>
+          <span id="down-hint" class="down-hint" aria-hidden="true" hidden>↓</span>
+        </div>
+      </section>
 
-    <main class="page">
       <section class="composer writer-only">
         <div id="audio-draft" class="draft-block" hidden></div>
         <textarea id="audio-body" class="grow" placeholder="texto del audio… (con @nombres y #temas)"></textarea>
@@ -70,7 +67,9 @@
           <button id="audio-publish" class="publish-btn" disabled>publicar</button>
         </div>
       </section>
+    </div>
 
+    <main class="page audio-page">
       <section id="audio-feed" class="feed"></section>
       <button id="audio-more" class="ghost more-btn" hidden>más</button>
     </main>

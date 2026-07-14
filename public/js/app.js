@@ -387,14 +387,10 @@ function cloudSize(count, max) {
 }
 
 function renderCloud(el, items, type, selected) {
+  // sin adornos ni avisos: una nube sin etiquetas es espacio en blanco
+  // (todo irá apareciendo poco a poco)
   el.replaceChildren();
-  if (items.length === 0) {
-    const empty = document.createElement('span');
-    empty.className = 'cloud-empty';
-    empty.textContent = type === 'mention' ? "todavía no hay @'s" : "todavía no hay #'s";
-    el.appendChild(empty);
-    return;
-  }
+  if (items.length === 0) return;
   const max = Math.max(...items.map((i) => i.count));
   const glyph = type === 'mention' ? '@' : '#';
   // orden alfabético en la nube (el recuento ya manda en el tamaño)
@@ -421,11 +417,15 @@ function renderClouds() {
 function renderCloudsFoot() {
   const s = state.audio;
   const n = s.entries.length;
-  const filtered = s.tags.size + s.mentions.size > 0 || s.q;
-  $('#clear-filters').hidden = !(s.tags.size + s.mentions.size > 0);
-  $('#clouds-count').textContent = s.loaded
-    ? `${n}${s.done ? '' : '+'} entrada${n === 1 ? '' : 's'}${filtered ? ' con estos filtros' : ''}`
-    : '';
+  const filtering = s.tags.size + s.mentions.size > 0;
+  $('#clear-filters').hidden = !filtering;
+  // el pie solo habla cuando hay algo que contar: una bitácora recién
+  // estrenada es una pantalla en blanco, sin avisos
+  $('#clouds-count').textContent =
+    s.loaded && (n > 0 || filtering || s.q)
+      ? `${n}${s.done ? '' : '+'} entrada${n === 1 ? '' : 's'}${filtering || s.q ? ' con estos filtros' : ''}`
+      : '';
+  $('#down-hint').hidden = !(s.loaded && n > 0);
 }
 
 // ---------- composer: texto ----------

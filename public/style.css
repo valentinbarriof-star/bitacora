@@ -165,14 +165,23 @@ textarea.grow { resize: none; overflow: hidden; }
 .login-box button { justify-self: start; color: var(--blue); }
 .error { color: var(--danger); font-size: 13px; }
 
-/* ---------- pantalla intermedia de audio: las nubes ----------
-   Ocupa lo que queda hasta los 100dvh (el alto real de la topbar lo mide
-   app.js → --topbar-h): a la izquierda la nube de @'s, a la derecha la de
-   #'s; en móvil, arriba y abajo. Clicar va acotando el carrete de abajo. */
+/* ---------- pantalla intermedia de audio ----------
+   topbar + nubes + composer = 100dvh (el alto real de la topbar lo mide
+   app.js → --topbar-h; el composer toma su alto natural y las nubes se
+   quedan el resto). @'s a la izquierda, #'s a la derecha; en móvil, arriba
+   y abajo. Sin adornos: nacen vacías y van llenándose con el uso. Clicar
+   va acotando el carrete de abajo. */
+
+.audio-hero {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - var(--topbar-h));
+}
 
 .clouds {
   display: flex;
-  min-height: calc(100dvh - var(--topbar-h));
+  flex: 1 1 auto;
+  min-height: 0;
   position: relative;
 }
 
@@ -184,27 +193,21 @@ textarea.grow { resize: none; overflow: hidden; }
   align-content: center;
   justify-content: center;
   align-items: baseline;
-  padding: 48px 32px 72px;
+  padding: 32px 32px 44px;
   overflow-y: auto;
 }
-.cloud + .cloud { border-left: 1px solid var(--hairline); }
 
-/* la marca de agua de cada nube: un glifo enorme y casi invisible detrás */
-.cloud { position: relative; }
-.cloud::before {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: min(38vh, 24vw);
-  color: var(--accent);
-  opacity: 0.05;
-  pointer-events: none;
+/* el composer de audio vive DENTRO del hero (resta su alto a las nubes),
+   pero mantiene la columna del resto de la página */
+.audio-hero .composer {
+  flex: 0 0 auto;
+  width: min(66vw, 105ch);
+  margin-bottom: 0;
+  padding: 0 0 22px 40px;
+  border-bottom: none;
 }
-#cloud-mentions::before { content: '@'; }
-#cloud-tags::before { content: '#'; }
 
-.cloud-empty { color: var(--muted); font-size: 13px; }
+.page.audio-page { padding-top: 56px; }
 
 /* cada etiqueta de la nube: texto plano que toma el acento al activarse.
    El tamaño lo pone app.js (inline, según su recuento). */
@@ -236,8 +239,8 @@ textarea.grow { resize: none; overflow: hidden; }
 
 @media (max-width: 720px) {
   .clouds { flex-direction: column; }
-  .cloud { padding: 32px 20px; }
-  .cloud + .cloud { border-left: none; border-top: 1px solid var(--hairline); }
+  .cloud { padding: 24px 20px; }
+  .audio-hero .composer { width: auto; padding: 0 12px 20px; }
 }
 
 /* ---------- composer ---------- */
