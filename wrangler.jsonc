@@ -14,9 +14,8 @@
     {
       "binding": "DB",
       "database_name": "bitacora-db",
-      // ⚠️ id local de desarrollo. Para producción: `npm run db:create`
-      // imprime el database_id real — pegarlo aquí antes del primer deploy.
-      "database_id": "00000000-0000-0000-0000-000000000000"
+      // la bitacora-db de la cuenta de valentin (creada con npm run db:create)
+      "database_id": "970864b7-d4b3-42df-ac49-71fc93f48341"
     }
   ],
   "r2_buckets": [
