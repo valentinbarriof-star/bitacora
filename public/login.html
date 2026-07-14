@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>bitácora · entrar</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+</head>
+<body class="login-page">
+  <main class="login-box">
+    <h1>bitácora<span class="cursor">_</span></h1>
+    <form id="login-form">
+      <input
+        type="text"
+        id="user"
+        placeholder="usuario"
+        value="valentin"
+        autocomplete="username"
+        autocapitalize="none"
+        autocorrect="off"
+        spellcheck="false"
+      />
+      <input
+        type="password"
+        id="password"
+        placeholder="contraseña"
+        autocomplete="current-password"
+        autofocus
+      />
+      <button type="submit">entrar</button>
+      <p id="login-error" class="error" hidden>usuario o contraseña incorrectos</p>
+    </form>
+  </main>
+  <script type="module">
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          user: document.getElementById('user').value,
+          password: document.getElementById('password').value,
+        }),
+      });
+      if (res.ok) {
+        location.href = '/';
+      } else {
+        document.getElementById('login-error').hidden = false;
+      }
+    });
+  </script>
+</body>
+</html>

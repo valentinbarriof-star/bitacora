@@ -1,0 +1,22 @@
+{
+  "name": "bitacora",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "tsc --noEmit",
+    "db:create": "wrangler d1 create bitacora-db",
+    "db:migrate": "wrangler d1 execute bitacora-db --local --file=schema.sql",
+    "db:migrate:remote": "wrangler d1 execute bitacora-db --remote --file=schema.sql",
+    "r2:create": "wrangler r2 bucket create bitacora-audio"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260708.1",
+    "typescript": "^5.5.0",
+    "wrangler": "^4.69.0"
+  }
+}

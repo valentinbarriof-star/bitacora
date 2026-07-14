@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#f5f5f5" />
+  <title>bitácora</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+</head>
+<body data-section="texto">
+  <header class="topbar">
+    <h1>bitácora<span class="cursor">_</span></h1>
+    <nav class="sections">
+      <a href="#texto" id="nav-texto" class="section-link">texto</a>
+      <a href="#audio" id="nav-audio" class="section-link">audio</a>
+    </nav>
+    <div class="topbar-actions">
+      <input type="search" id="search" placeholder="buscar…" />
+      <button id="logout" class="ghost" title="salir">salir</button>
+    </div>
+  </header>
+
+  <!-- ======================= sección TEXTO (azul) ======================= -->
+  <main class="page view" data-view="texto">
+    <section class="composer writer-only">
+      <input type="text" id="texto-title" placeholder="título (opcional, los #tags cuentan)" />
+      <textarea id="texto-body" class="grow" placeholder="escribe… (#tags donde quieras)"></textarea>
+      <div class="composer-bar">
+        <span class="spacer"></span>
+        <button id="texto-publish" class="publish-btn" disabled>publicar</button>
+      </div>
+    </section>
+
+    <div id="texto-tagbar" class="tagbar"></div>
+
+    <section id="texto-feed" class="feed"></section>
+    <button id="texto-more" class="ghost more-btn" hidden>más</button>
+  </main>
+
+  <!-- ======================= sección AUDIO (rojo) ======================= -->
+  <div class="view" data-view="audio" hidden>
+    <!-- pantalla intermedia: lo que queda hasta los 100dvh partido en dos —
+         a la izquierda la nube de @'s, a la derecha la de #'s (en móvil,
+         arriba y abajo). Cada clic acota el carrete que espera más abajo. -->
+    <section class="clouds">
+      <div class="cloud" id="cloud-mentions" aria-label="menciones">
+        <span class="cloud-empty">todavía no hay @'s</span>
+      </div>
+      <div class="cloud" id="cloud-tags" aria-label="temas">
+        <span class="cloud-empty">todavía no hay #'s</span>
+      </div>
+      <div class="clouds-foot">
+        <button id="clear-filters" class="ghost" hidden>× limpiar filtros</button>
+        <span id="clouds-count"></span>
+        <span class="down-hint" aria-hidden="true">↓</span>
+      </div>
+    </section>
+
+    <main class="page">
+      <section class="composer writer-only">
+        <div id="audio-draft" class="draft-block" hidden></div>
+        <textarea id="audio-body" class="grow" placeholder="texto del audio… (con @nombres y #temas)"></textarea>
+        <div class="composer-bar">
+          <button id="record" class="record-btn">● grabar</button>
+          <button id="add-file" class="ghost">+ archivo</button>
+          <input type="file" id="file-input" accept="audio/*" hidden />
+          <span class="spacer"></span>
+          <button id="audio-publish" class="publish-btn" disabled>publicar</button>
+        </div>
+      </section>
+
+      <section id="audio-feed" class="feed"></section>
+      <button id="audio-more" class="ghost more-btn" hidden>más</button>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

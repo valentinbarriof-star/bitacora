@@ -1,0 +1,4 @@
+# copiar a .dev.vars para desarrollo local
+PASSWORD=cambiame
+AUTH_SECRET=un-secreto-largo-y-aleatorio
+# otros usuarios (opcional): PASSWORD_MANU=...
